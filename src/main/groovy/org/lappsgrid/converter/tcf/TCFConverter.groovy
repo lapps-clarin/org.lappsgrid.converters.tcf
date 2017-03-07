@@ -4,6 +4,8 @@ package org.lappsgrid.converter.tcf
 
 import eu.clarin.weblicht.wlfxb.io.TextCorpusStreamed
 import eu.clarin.weblicht.wlfxb.io.WLDObjector
+import eu.clarin.weblicht.wlfxb.tc.api.Lemma
+import eu.clarin.weblicht.wlfxb.tc.api.LemmasLayer
 import eu.clarin.weblicht.wlfxb.tc.api.SentencesLayer
 import eu.clarin.weblicht.wlfxb.tc.api.TextLayer
 import eu.clarin.weblicht.wlfxb.tc.api.Token
@@ -16,10 +18,13 @@ import eu.clarin.weblicht.wlfxb.tc.xb.SentencesLayerStored
 import eu.clarin.weblicht.wlfxb.tc.xb.TextCorpusLayerTag
 import eu.clarin.weblicht.wlfxb.tc.xb.TokensLayerStored
 import eu.clarin.weblicht.wlfxb.xb.WLData
+import groovyjarjarantlr.TokenStreamRewriteEngine
+import org.lappsgrid.discriminator.Discriminators.Uri
 import org.lappsgrid.serialization.DataContainer
 import org.lappsgrid.serialization.lif.Annotation
 import org.lappsgrid.serialization.lif.Container
 import org.lappsgrid.serialization.lif.View
+import sun.security.util.Length
 
 /**
  * @author Keith Suderman
@@ -29,6 +34,8 @@ class TCFConverter {
     Map getterMap = [:]
     Map<String, Offsets> tokens = new HashMap<String,Offsets>()
     Container container
+
+    String producer = this.class.getName()
 
     TCFConverter() {
         getterMap[TokensLayerStored] = { layer,n -> layer.getToken(n) }
@@ -58,6 +65,7 @@ class TCFConverter {
 
     void processTokens(TextCorpus corpus) {
         View view = container.newView('token-view')
+        view.addContains(Uri.TOKEN, producer, "token:fromTCF")
         TokensLayer layer = corpus.getTokensLayer()
         String text = container.text
         int n = layer.size()
@@ -67,6 +75,7 @@ class TCFConverter {
             Annotation annotation = view.newAnnotation()
             annotation.id = token.ID
             annotation.features.word = token.string
+            annotation.atType = Uri.TOKEN
             start = text.indexOf(token.string, start)
             if (start < 0) {
                 throw new ConversionException("Unable to match string \"${token.string}\" in the text")
@@ -85,6 +94,26 @@ class TCFConverter {
         }
         View view = container.newView('sentence-view')
     }
+
+    void processLemma(TextCorpus corpus) {
+        LemmasLayer lemmasLayer = corpus.getLemmasLayer()
+        if (!lemmasLayer) {
+            return
+        }
+        View tokenView = (View) container.getView(0)
+        tokenView.addContains(Uri.LEMMA, producer, "lemma:fromTCF")
+        for (int i = 0; i < lemmasLayer.size(); i++) {
+            Lemma lemma = lemmasLayer.getLemma(i)
+            String lemmaString = lemma.getString()
+            Token[] toks = lemmasLayer.getTokens(lemma)
+            println "Found ${toks.length} tokens from the lemma ${lemmaString}"
+            Annotation token = tokenView.findById(toks[toks.length - 1].ID)
+            token.addFeature(Uri.LEMMA, lemmaString)
+        }
+        container.addView(tokenView)
+
+    }
+
     void run() {
         InputStream stream = this.class.getResourceAsStream('/karen-flew.xml')
         if (!stream) {
@@ -103,6 +132,7 @@ class TCFConverter {
         container.text = textLayer.getText()
         container.language = corpus.getLanguage()
         processTokens(corpus)
+        processLemma(corpus)
 
         DataContainer dc = new DataContainer(container)
         println dc.asPrettyJson()
