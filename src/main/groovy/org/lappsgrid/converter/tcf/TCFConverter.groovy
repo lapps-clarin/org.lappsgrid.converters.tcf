@@ -8,7 +8,6 @@ import eu.clarin.weblicht.wlfxb.tc.xb.PosTagsLayerStored
 import eu.clarin.weblicht.wlfxb.tc.xb.SentencesLayerStored
 import eu.clarin.weblicht.wlfxb.tc.xb.TokensLayerStored
 import eu.clarin.weblicht.wlfxb.xb.WLData
-import org.lappsgrid.discriminator.Discriminators
 import org.lappsgrid.discriminator.Discriminators.Uri
 import org.lappsgrid.serialization.DataContainer
 import org.lappsgrid.serialization.lif.Annotation
@@ -62,7 +61,6 @@ class TCFConverter {
         for (int i = 0; i < n; ++i) {
             Token token = layer.getToken(i)
             Annotation annotation = view.newAnnotation()
-            annotation.atType = Discriminators.Uri.TOKEN
             annotation.id = token.ID
             annotation.features.word = token.string
             annotation.atType = Uri.TOKEN
@@ -83,14 +81,14 @@ class TCFConverter {
             return
         }
         View view = container.newView('sentence-view')
-        view.addContains(Discriminators.Uri.SENTENCE, this.class.name, "tcf:sentence")
+        view.addContains(Uri.SENTENCE, this.class.name, "tcf:sentence")
         for (int i; i < layer.size(); ++i) {
             Sentence s = layer.getSentence(i)
             Token[] sentenceTokens = layer.getTokens(s)
             if (sentenceTokens == null || sentenceTokens.length == 0) {
                 throw new ConversionException("Sentence does not contain any tokens")
             }
-            Annotation annotation = view.newAnnotation("s_${i+1}", Discriminators.Uri.SENTENCE)
+            Annotation annotation = view.newAnnotation("s_${i+1}", Uri.SENTENCE)
             annotation.label = "Sentence"
             Token t = sentenceTokens[0]
             Offsets offset = tokens.get(t.ID)
@@ -118,12 +116,25 @@ class TCFConverter {
             Lemma lemma = lemmasLayer.getLemma(i)
             String lemmaString = lemma.getString()
             Token[] toks = lemmasLayer.getTokens(lemma)
-            println "Found ${toks.length} tokens from the lemma ${lemmaString}"
             Annotation token = tokenView.findById(toks[toks.length - 1].ID)
             token.addFeature(Uri.LEMMA, lemmaString)
         }
-        container.addView(tokenView)
+    }
 
+    void processPos(TextCorpus corpus) {
+        PosTagsLayer posLayer = corpus.getPosTagsLayer()
+        if (!posLayer) {
+            return
+        }
+        View tokenView = (View) container.getView(0)
+        tokenView.addContains(Uri.POS, producer, "pos:fromTCF")
+        for (int i = 0; i < posLayer.size(); i++) {
+            PosTag pos = posLayer.getTag(i)
+            String posTag = pos.getString()
+            Token[] toks = posLayer.getTokens(pos)
+            Annotation token = tokenView.findById(toks[toks.length - 1].ID)
+            token.addFeature(Uri.POS, posTag)
+        }
     }
 
     void run() {
@@ -146,6 +157,7 @@ class TCFConverter {
         processTokens(corpus)
         processSentences(corpus)
         processLemma(corpus)
+        processPos(corpus)
 
         DataContainer dc = new DataContainer(container)
         println dc.asPrettyJson()
