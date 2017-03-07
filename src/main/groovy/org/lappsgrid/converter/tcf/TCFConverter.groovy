@@ -1,21 +1,14 @@
 package org.lappsgrid.converter.tcf
 
 //import org.lappsgrid.serialization.lif.*
-
-import eu.clarin.weblicht.wlfxb.io.TextCorpusStreamed
 import eu.clarin.weblicht.wlfxb.io.WLDObjector
-import eu.clarin.weblicht.wlfxb.tc.api.SentencesLayer
-import eu.clarin.weblicht.wlfxb.tc.api.TextLayer
-import eu.clarin.weblicht.wlfxb.tc.api.Token
-import eu.clarin.weblicht.wlfxb.tc.xb.PosTagsLayerStored
-import eu.clarin.weblicht.wlfxb.tc.api.TextCorpus
-import eu.clarin.weblicht.wlfxb.tc.api.TextCorpusLayer
-import eu.clarin.weblicht.wlfxb.tc.api.TokensLayer
+import eu.clarin.weblicht.wlfxb.tc.api.*
 import eu.clarin.weblicht.wlfxb.tc.xb.LemmasLayerStored
+import eu.clarin.weblicht.wlfxb.tc.xb.PosTagsLayerStored
 import eu.clarin.weblicht.wlfxb.tc.xb.SentencesLayerStored
-import eu.clarin.weblicht.wlfxb.tc.xb.TextCorpusLayerTag
 import eu.clarin.weblicht.wlfxb.tc.xb.TokensLayerStored
 import eu.clarin.weblicht.wlfxb.xb.WLData
+import org.lappsgrid.discriminator.Discriminators.Uri
 import org.lappsgrid.serialization.DataContainer
 import org.lappsgrid.serialization.lif.Annotation
 import org.lappsgrid.serialization.lif.Container
@@ -29,6 +22,8 @@ class TCFConverter {
     Map getterMap = [:]
     Map<String, Offsets> tokens = new HashMap<String,Offsets>()
     Container container
+
+    String producer = this.class.getName()
 
     TCFConverter() {
         getterMap[TokensLayerStored] = { layer,n -> layer.getToken(n) }
@@ -58,6 +53,7 @@ class TCFConverter {
 
     void processTokens(TextCorpus corpus) {
         View view = container.newView('token-view')
+        view.addContains(Uri.TOKEN, producer, "token:fromTCF")
         TokensLayer layer = corpus.getTokensLayer()
         String text = container.text
         int n = layer.size()
@@ -67,6 +63,7 @@ class TCFConverter {
             Annotation annotation = view.newAnnotation()
             annotation.id = token.ID
             annotation.features.word = token.string
+            annotation.atType = Uri.TOKEN
             start = text.indexOf(token.string, start)
             if (start < 0) {
                 throw new ConversionException("Unable to match string \"${token.string}\" in the text")
@@ -84,6 +81,60 @@ class TCFConverter {
             return
         }
         View view = container.newView('sentence-view')
+        view.addContains(Uri.SENTENCE, this.class.name, "tcf:sentence")
+        for (int i; i < layer.size(); ++i) {
+            Sentence s = layer.getSentence(i)
+            Token[] sentenceTokens = layer.getTokens(s)
+            if (sentenceTokens == null || sentenceTokens.length == 0) {
+                throw new ConversionException("Sentence does not contain any tokens")
+            }
+            Annotation annotation = view.newAnnotation("s_${i+1}", Uri.SENTENCE)
+            annotation.label = "Sentence"
+            Token t = sentenceTokens[0]
+            Offsets offset = tokens.get(t.ID)
+            if (!offset) {
+                throw new ConversionException("No such token ${t.ID} in sentence $i")
+            }
+            annotation.start = offset.start
+            t = sentenceTokens[-1]
+            offset = tokens.get(t.ID)
+            if (!offset) {
+                throw new ConversionException("No sucj token ${t.ID} in sentence $i")
+            }
+            annotation.end = offset.end
+        }
+    }
+
+    void processLemma(TextCorpus corpus) {
+        LemmasLayer lemmasLayer = corpus.getLemmasLayer()
+        if (!lemmasLayer) {
+            return
+        }
+        View tokenView = (View) container.getView(0)
+        tokenView.addContains(Uri.LEMMA, producer, "lemma:fromTCF")
+        for (int i = 0; i < lemmasLayer.size(); i++) {
+            Lemma lemma = lemmasLayer.getLemma(i)
+            String lemmaString = lemma.getString()
+            Token[] toks = lemmasLayer.getTokens(lemma)
+            Annotation token = tokenView.findById(toks[toks.length - 1].ID)
+            token.addFeature(Uri.LEMMA, lemmaString)
+        }
+    }
+
+    void processPos(TextCorpus corpus) {
+        PosTagsLayer posLayer = corpus.getPosTagsLayer()
+        if (!posLayer) {
+            return
+        }
+        View tokenView = (View) container.getView(0)
+        tokenView.addContains(Uri.POS, producer, "pos:fromTCF")
+        for (int i = 0; i < posLayer.size(); i++) {
+            PosTag pos = posLayer.getTag(i)
+            String posTag = pos.getString()
+            Token[] toks = posLayer.getTokens(pos)
+            Annotation token = tokenView.findById(toks[toks.length - 1].ID)
+            token.addFeature(Uri.POS, posTag)
+        }
     }
 
     void run() {
@@ -104,6 +155,9 @@ class TCFConverter {
         container.text = textLayer.getText()
         container.language = corpus.getLanguage()
         processTokens(corpus)
+        processSentences(corpus)
+        processLemma(corpus)
+        processPos(corpus)
 
         DataContainer dc = new DataContainer(container)
         println dc.asPrettyJson()
@@ -146,6 +200,7 @@ class TCFConverter {
         }
         */
     }
+
     static void main(String[] args) {
         new TCFConverter().run()
     }
