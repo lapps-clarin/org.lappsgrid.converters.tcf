@@ -13,6 +13,7 @@ import org.lappsgrid.serialization.DataContainer
 import org.lappsgrid.serialization.lif.Annotation
 import org.lappsgrid.serialization.lif.Container
 import org.lappsgrid.serialization.lif.View
+import org.lappsgrid.vocabulary.Features
 
 /**
  * @author Keith Suderman
@@ -132,7 +133,7 @@ class TCFConverter {
             String lemmaString = lemma.getString()
             Token[] toks = lemmasLayer.getTokens(lemma)
             Annotation token = tokenView.findById(toks[toks.length - 1].ID)
-            token.addFeature(Uri.LEMMA, lemmaString)
+            token.addFeature(Features.Token.LEMMA, lemmaString)
         }
     }
 
@@ -148,7 +149,7 @@ class TCFConverter {
             String posTag = pos.getString()
             Token[] toks = posLayer.getTokens(pos)
             Annotation token = tokenView.findById(toks[toks.length - 1].ID)
-            token.addFeature(Uri.POS, posTag)
+            token.addFeature(Features.Token.PART_OF_SPEECH, posTag)
         }
     }
 
