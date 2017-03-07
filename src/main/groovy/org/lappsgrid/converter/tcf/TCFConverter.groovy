@@ -1,30 +1,19 @@
 package org.lappsgrid.converter.tcf
 
 //import org.lappsgrid.serialization.lif.*
-
-import eu.clarin.weblicht.wlfxb.io.TextCorpusStreamed
 import eu.clarin.weblicht.wlfxb.io.WLDObjector
-import eu.clarin.weblicht.wlfxb.tc.api.Lemma
-import eu.clarin.weblicht.wlfxb.tc.api.LemmasLayer
-import eu.clarin.weblicht.wlfxb.tc.api.SentencesLayer
-import eu.clarin.weblicht.wlfxb.tc.api.TextLayer
-import eu.clarin.weblicht.wlfxb.tc.api.Token
-import eu.clarin.weblicht.wlfxb.tc.xb.PosTagsLayerStored
-import eu.clarin.weblicht.wlfxb.tc.api.TextCorpus
-import eu.clarin.weblicht.wlfxb.tc.api.TextCorpusLayer
-import eu.clarin.weblicht.wlfxb.tc.api.TokensLayer
+import eu.clarin.weblicht.wlfxb.tc.api.*
 import eu.clarin.weblicht.wlfxb.tc.xb.LemmasLayerStored
+import eu.clarin.weblicht.wlfxb.tc.xb.PosTagsLayerStored
 import eu.clarin.weblicht.wlfxb.tc.xb.SentencesLayerStored
-import eu.clarin.weblicht.wlfxb.tc.xb.TextCorpusLayerTag
 import eu.clarin.weblicht.wlfxb.tc.xb.TokensLayerStored
 import eu.clarin.weblicht.wlfxb.xb.WLData
-import groovyjarjarantlr.TokenStreamRewriteEngine
+import org.lappsgrid.discriminator.Discriminators
 import org.lappsgrid.discriminator.Discriminators.Uri
 import org.lappsgrid.serialization.DataContainer
 import org.lappsgrid.serialization.lif.Annotation
 import org.lappsgrid.serialization.lif.Container
 import org.lappsgrid.serialization.lif.View
-import sun.security.util.Length
 
 /**
  * @author Keith Suderman
@@ -73,6 +62,7 @@ class TCFConverter {
         for (int i = 0; i < n; ++i) {
             Token token = layer.getToken(i)
             Annotation annotation = view.newAnnotation()
+            annotation.atType = Discriminators.Uri.TOKEN
             annotation.id = token.ID
             annotation.features.word = token.string
             annotation.atType = Uri.TOKEN
@@ -93,6 +83,28 @@ class TCFConverter {
             return
         }
         View view = container.newView('sentence-view')
+        view.addContains(Discriminators.Uri.SENTENCE, this.class.name, "tcf:sentence")
+        for (int i; i < layer.size(); ++i) {
+            Sentence s = layer.getSentence(i)
+            Token[] sentenceTokens = layer.getTokens(s)
+            if (sentenceTokens == null || sentenceTokens.length == 0) {
+                throw new ConversionException("Sentence does not contain any tokens")
+            }
+            Annotation annotation = view.newAnnotation("s_${i+1}", Discriminators.Uri.SENTENCE)
+            annotation.label = "Sentence"
+            Token t = sentenceTokens[0]
+            Offsets offset = tokens.get(t.ID)
+            if (!offset) {
+                throw new ConversionException("No such token ${t.ID} in sentence $i")
+            }
+            annotation.start = offset.start
+            t = sentenceTokens[-1]
+            offset = tokens.get(t.ID)
+            if (!offset) {
+                throw new ConversionException("No sucj token ${t.ID} in sentence $i")
+            }
+            annotation.end = offset.end
+        }
     }
 
     void processLemma(TextCorpus corpus) {
@@ -132,6 +144,7 @@ class TCFConverter {
         container.text = textLayer.getText()
         container.language = corpus.getLanguage()
         processTokens(corpus)
+        processSentences(corpus)
         processLemma(corpus)
 
         DataContainer dc = new DataContainer(container)
@@ -175,6 +188,7 @@ class TCFConverter {
         }
         */
     }
+
     static void main(String[] args) {
         new TCFConverter().run()
     }
