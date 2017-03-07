@@ -13,6 +13,7 @@ import org.lappsgrid.serialization.DataContainer
 import org.lappsgrid.serialization.lif.Annotation
 import org.lappsgrid.serialization.lif.Container
 import org.lappsgrid.serialization.lif.View
+import org.lappsgrid.vocabulary.Features
 
 /**
  * @author Keith Suderman
@@ -62,6 +63,7 @@ class TCFConverter {
         processSentences(corpus)
         processLemma(corpus)
         processPos(corpus)
+        processNE(corpus)
 
         return new DataContainer(container)
     }
@@ -125,7 +127,8 @@ class TCFConverter {
         if (!lemmasLayer) {
             return
         }
-        View tokenView = (View) container.getView(0)
+        List views = container.findViewsThatContain(Uri.TOKEN)
+        View tokenView = views.get(views.size() - 1)
         tokenView.addContains(Uri.LEMMA, producer, "lemma:fromTCF")
         for (int i = 0; i < lemmasLayer.size(); i++) {
             Lemma lemma = lemmasLayer.getLemma(i)
@@ -141,7 +144,8 @@ class TCFConverter {
         if (!posLayer) {
             return
         }
-        View tokenView = (View) container.getView(0)
+        List views = container.findViewsThatContain(Uri.TOKEN)
+        View tokenView = views.get(views.size() - 1)
         tokenView.addContains(Uri.POS, producer, "pos:fromTCF")
         for (int i = 0; i < posLayer.size(); i++) {
             PosTag pos = posLayer.getTag(i)
@@ -149,6 +153,30 @@ class TCFConverter {
             Token[] toks = posLayer.getTokens(pos)
             Annotation token = tokenView.findById(toks[toks.length - 1].ID)
             token.addFeature(Uri.POS, posTag)
+        }
+    }
+
+    void processNE(TextCorpus corpus) {
+        NamedEntitiesLayer layer = corpus.getNamedEntitiesLayer()
+        if (!layer) return
+        View view = container.newView("ne-view")
+        view.addContains(Uri.NE, this.class.name, layer.getType())
+
+        for (int i; i < layer.size(); ++i) {
+            NamedEntity namedEntity = layer.getEntity(i)
+            Token[] toks = layer.getTokens(namedEntity)
+            List target = []
+            int start = Double.POSITIVE_INFINITY
+            int end = Double.NEGATIVE_INFINITY
+            toks.each {
+                target.add(it.ID)
+                int curStart = it.start?: tokens[it.ID].start
+                int curEnd = it.end?: tokens[it.ID].end
+                start = Math.min(curStart, start)
+                end = Math.max(curEnd, end)
+            }
+            Annotation ne = view.newAnnotation("ne_" + (i+1), Uri.NE, start, end)
+            ne.addFeature(Features.NamedEntity.CATEGORY, namedEntity.getType())
         }
     }
 
