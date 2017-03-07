@@ -85,6 +85,7 @@ class TCFConverter {
         }
         View view = container.newView('sentence-view')
     }
+
     void run() {
         InputStream stream = this.class.getResourceAsStream('/karen-flew.xml')
         if (!stream) {
