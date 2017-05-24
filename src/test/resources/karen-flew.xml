@@ -29,5 +29,37 @@
             <tc:lemma ID="l_4" tokenIDs="t_4">york</tc:lemma>
             <tc:lemma ID="l_5" tokenIDs="t_5">.</tc:lemma>
         </tc:lemmas>
+        <tc:parsing xmlns:tc="http://www.dspin.de/data/textcorpus" tagset="penntb">
+            <tc:parse>
+                <tc:constituent cat="TOP" ID="c_11">
+                    <tc:constituent cat="S" ID="c_10">
+                        <tc:constituent cat="NP" ID="c_1">
+                            <tc:constituent cat="NNP" ID="c_0" tokenIDs="t_0"></tc:constituent>
+                        </tc:constituent>
+                        <tc:constituent cat="VP" ID="c_8">
+                            <tc:constituent cat="VBD" ID="c_2" tokenIDs="t_1"></tc:constituent>
+                            <tc:constituent cat="PP" ID="c_7">
+                                <tc:constituent cat="TO" ID="c_3" tokenIDs="t_2"></tc:constituent>
+                                <tc:constituent cat="NP" ID="c_6">
+                                    <tc:constituent cat="NNP" ID="c_4" tokenIDs="t_3"></tc:constituent>
+                                    <tc:constituent cat="NNP" ID="c_5" tokenIDs="t_4"></tc:constituent>
+                                </tc:constituent>
+                            </tc:constituent>
+                        </tc:constituent>
+                        <tc:constituent cat="." ID="c_9" tokenIDs="t_5"></tc:constituent>
+                    </tc:constituent>
+                </tc:constituent>
+            </tc:parse>
+        </tc:parsing>
+        <tc:depparsing xmlns:tc="http://www.dspin.de/data/textcorpus" tagset="stanford-simple" multigovs="true" emptytoks="false">
+            <tc:parse>
+                <tc:dependency func="nn" govIDs="t_4" depIDs="t_3"></tc:dependency>
+                <tc:dependency func="pobj" govIDs="t_2" depIDs="t_4"></tc:dependency>
+                <tc:dependency func="root" depIDs="t_1"></tc:dependency>
+                <tc:dependency func="punct" govIDs="t_1" depIDs="t_5"></tc:dependency>
+                <tc:dependency func="prep" govIDs="t_1" depIDs="t_2"></tc:dependency>
+                <tc:dependency func="nsubj" govIDs="t_1" depIDs="t_0"></tc:dependency>
+            </tc:parse>
+        </tc:depparsing>
     </TextCorpus>
 </D-Spin>
