@@ -3,14 +3,16 @@ package org.lappsgrid.converter.tcf
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.lappsgrid.serialization.Data
-import org.lappsgrid.serialization.lif.Annotation
-
-import static org.junit.Assert.*
-
 import org.lappsgrid.discriminator.Discriminators
+import org.lappsgrid.serialization.Data
+import org.lappsgrid.serialization.Serializer
+import org.lappsgrid.serialization.lif.Annotation
 import org.lappsgrid.serialization.lif.Container
 import org.lappsgrid.serialization.lif.View
+import org.lappsgrid.vocabulary.Features
+
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertTrue
 
 
 /**
@@ -82,5 +84,67 @@ class TCFConverterTests {
 
         List<Annotation> annotations = views[0].annotations
         assertEquals 'Karen flew to New York.', extractText(annotations[0])
+    }
+
+    @Test
+    void testConstituent() {
+        List<View> views = container.findViewsThatContain(Discriminators.Uri.PHRASE_STRUCTURE)
+        assert 1 == views.size()
+        views[0]
+
+        List<Annotation> annotations = views[0].annotations
+        assert 13 == annotations.size()
+
+        Map<String, String> filiations = new HashMap<>()
+        Map<String, String> labels = new HashMap<>()
+        for (Annotation annotation : annotations) {
+            if (annotation.getAtType() == Discriminators.Uri.PHRASE_STRUCTURE) {
+                // 12 non-terminals and 6 terminals
+                assertEquals(18, parseListString(annotation.getFeature(Features.PhraseStructure.CONSTITUENTS)).length)
+            } else {
+                parseListString(annotation.getFeature(Features.Constituent.CHILDREN)).each { String child ->
+                    filiations.put(child.replaceAll("^.+:", ""), annotation.getId())
+                }
+                labels.put(annotation.getId(), annotation.getLabel())
+            }
+        }
+        assertEquals("NNP", labels[filiations["t_0"]])
+        assertEquals("NP", labels[filiations[filiations["t_0"]]])
+        assertEquals("S", labels[filiations[filiations[filiations["t_0"]]]])
+        assertEquals("TOP", labels[filiations[filiations[filiations[filiations["t_0"]]]]])
+
+        assertEquals("VBD", labels[filiations["t_1"]])
+        assertEquals("VP", labels[filiations[filiations["t_1"]]])
+        assertEquals("S", labels[filiations[filiations[filiations["t_1"]]]])
+        assertEquals("TOP", labels[filiations[filiations[filiations[filiations["t_1"]]]]])
+
+        assertEquals("TO", labels[filiations["t_2"]])
+        assertEquals("PP", labels[filiations[filiations["t_2"]]])
+        assertEquals("VP", labels[filiations[filiations[filiations["t_2"]]]])
+        assertEquals("S", labels[filiations[filiations[filiations[filiations["t_2"]]]]])
+        assertEquals("TOP", labels[filiations[filiations[filiations[filiations[filiations["t_2"]]]]]])
+
+        assertEquals("NNP", labels[filiations["t_3"]])
+        assertEquals("NP", labels[filiations[filiations["t_3"]]])
+        assertEquals("PP", labels[filiations[filiations[filiations["t_3"]]]])
+        assertEquals("VP", labels[filiations[filiations[filiations[filiations["t_3"]]]]])
+        assertEquals("S", labels[filiations[filiations[filiations[filiations[filiations["t_3"]]]]]])
+        assertEquals("TOP", labels[filiations[filiations[filiations[filiations[filiations[filiations["t_3"]]]]]]])
+
+        assertEquals("NNP", labels[filiations["t_4"]])
+        assertEquals("NP", labels[filiations[filiations["t_4"]]])
+        assertEquals("PP", labels[filiations[filiations[filiations["t_4"]]]])
+        assertEquals("VP", labels[filiations[filiations[filiations[filiations["t_4"]]]]])
+        assertEquals("S", labels[filiations[filiations[filiations[filiations[filiations["t_4"]]]]]])
+        assertEquals("TOP", labels[filiations[filiations[filiations[filiations[filiations[filiations["t_4"]]]]]]])
+
+        assertEquals(".", labels[filiations["t_5"]])
+        assertEquals("S", labels[filiations[filiations["t_5"]]])
+        assertEquals("TOP", labels[filiations[filiations[filiations["t_5"]]]])
+
+    }
+
+    String[] parseListString(String string) {
+        return string.substring(1, string.size() -1).split(",\\s+")
     }
 }
