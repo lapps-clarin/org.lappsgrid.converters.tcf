@@ -64,6 +64,7 @@ class TCFConverter {
         processLemma(corpus)
         processPos(corpus)
         processConstituents(corpus)
+        processDependencies(corpus)
 
         return new DataContainer(container)
     }
@@ -116,7 +117,7 @@ class TCFConverter {
             t = sentenceTokens[-1]
             offset = tokens.get(t.ID)
             if (!offset) {
-                throw new ConversionException("No sucj token ${t.ID} in sentence $i")
+                throw new ConversionException("No such token ${t.ID} in sentence $i")
             }
             annotation.end = offset.end
         }
@@ -145,6 +146,7 @@ class TCFConverter {
         }
         View tokenView = (View) container.getView(0)
         tokenView.addContains(Uri.POS, producer, "pos:fromTCF")
+        // wait for Serialization library v2.5.0
 //        tokenView.getContains(Uri.POS).addMetadata("posTagSet", posLayer.getTagset())
         for (int i = 0; i < posLayer.size(); i++) {
             PosTag pos = posLayer.getTag(i)
@@ -218,6 +220,40 @@ class TCFConverter {
             phraseStructure.setLabel()
         }
     }
+
+    void processDependencies(TextCorpus corpus) {
+        DependencyParsingLayer parseLayer = corpus.getDependencyParsingLayer()
+        if (!parseLayer) return
+
+        View dependencyView = (View) container.newView('dependency-view')
+        dependencyView.addContains(Uri.DEPENDENCY_STRUCTURE, producer, "dependency_structure:fromTCF")
+        // wait for Serialization library v2.5.0
+//        dependencyView.getContains(Uri.DEPENDENCY_STRUCTURE).addMetadata("dependencySet", parseLayer.getTagset())
+        dependencyView.addContains(Uri.DEPENDENCY, producer, "dependency:fromTCF")
+//        dependencyView.dependsOn("token-view")
+
+        // for each parse (sentence), create a new annotation of PS
+        for (int sentId = 0; sentId < parseLayer.size(); sentId++) {
+            DependencyParse parse = parseLayer.getParse(sentId)
+            int depId = 0
+            List<String> dependencyIds = new LinkedList<>()
+            for (Dependency dep : parse.getDependencies()) {
+                String dependencyId = "dep_${sentId}_${depId++}"
+                Annotation dependency = dependencyView.newAnnotation(dependencyId, Uri.DEPENDENCY)
+                dependency.setLabel(dep.getFunction())
+                for (Token dependent : parseLayer.getDependentTokens(dep)) {
+                    dependency.addFeature(Features.Dependency.DEPENDENT, "token-view:${dependent.getID()}")
+                }
+                for (Token governor : parseLayer.getGovernorTokens(dep)) {
+                    dependency.addFeature(Features.Dependency.GOVERNOR, "token-view:${governor.getID()}")
+                }
+                dependencyIds.add(dependencyId)
+            }
+            dependencyView.newAnnotation("depstr_${sentId}", Uri.DEPENDENCY_STRUCTURE).
+                    addFeature(Features.DependencyStructure.DEPENDENCIES, dependencyIds.toString())
+        }
+    }
+
     void run() {
         InputStream stream = this.class.getResourceAsStream('/karen-flew.xml')
         if (!stream) {
