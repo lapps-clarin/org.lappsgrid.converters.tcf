@@ -5,7 +5,6 @@ import org.junit.Before
 import org.junit.Test
 import org.lappsgrid.discriminator.Discriminators
 import org.lappsgrid.serialization.Data
-import org.lappsgrid.serialization.Serializer
 import org.lappsgrid.serialization.lif.Annotation
 import org.lappsgrid.serialization.lif.Container
 import org.lappsgrid.serialization.lif.View
@@ -13,7 +12,6 @@ import org.lappsgrid.vocabulary.Features
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
-
 
 /**
  * @author Keith Suderman
@@ -90,7 +88,6 @@ class TCFConverterTests {
     void testConstituent() {
         List<View> views = container.findViewsThatContain(Discriminators.Uri.PHRASE_STRUCTURE)
         assert 1 == views.size()
-        views[0]
 
         List<Annotation> annotations = views[0].annotations
         assert 13 == annotations.size()
@@ -146,5 +143,48 @@ class TCFConverterTests {
 
     String[] parseListString(String string) {
         return string.substring(1, string.size() -1).split(",\\s+")
+    }
+
+    @Test
+    void testDependency() {
+        List<View> views = container.findViewsThatContain(Discriminators.Uri.DEPENDENCY_STRUCTURE)
+        assert 1 == views.size()
+
+        List<Annotation> annotations = views[0].annotations
+        assert 7 == annotations.size()
+
+        for (Annotation annotation : annotations) {
+            if (annotation.getAtType() == Discriminators.Uri.DEPENDENCY_STRUCTURE) {
+                assertEquals(6, parseListString(annotation.getFeature(Features.DependencyStructure.DEPENDENCIES)).length)
+            } else {
+                assertEquals(Discriminators.Uri.DEPENDENCY, annotation.getAtType())
+                switch (annotation.getFeature(Features.Dependency.DEPENDENT).replaceAll("^.+:", "")) {
+                    case "t_0":
+                        assertEquals("t_1", annotation.getFeature(Features.Dependency.GOVERNOR).replaceAll("^.+:", ""))
+                        assertEquals("nsubj", annotation.getLabel())
+                        break
+                    case "t_1":
+                        assertEquals(null, annotation.getFeature(Features.Dependency.GOVERNOR))
+                        assertEquals("root", annotation.getLabel())
+                        break
+                    case "t_2":
+                        assertEquals("t_1", annotation.getFeature(Features.Dependency.GOVERNOR).replaceAll("^.+:", ""))
+                        assertEquals("prep", annotation.getLabel())
+                        break
+                    case "t_3":
+                        assertEquals("t_4", annotation.getFeature(Features.Dependency.GOVERNOR).replaceAll("^.+:", ""))
+                        assertEquals("nn", annotation.getLabel())
+                        break
+                    case "t_4":
+                        assertEquals("t_2", annotation.getFeature(Features.Dependency.GOVERNOR).replaceAll("^.+:", ""))
+                        assertEquals("pobj", annotation.getLabel())
+                        break
+                    case "t_5":
+                        assertEquals("t_1", annotation.getFeature(Features.Dependency.GOVERNOR).replaceAll("^.+:", ""))
+                        assertEquals("punct", annotation.getLabel())
+                        break
+                }
+            }
+        }
     }
 }
