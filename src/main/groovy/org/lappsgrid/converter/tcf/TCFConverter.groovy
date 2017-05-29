@@ -64,6 +64,8 @@ class TCFConverter {
         processLemma(corpus)
         processPos(corpus)
         processNE(corpus)
+        processConstituents(corpus)
+        processDependencies(corpus)
 
         return new DataContainer(container)
     }
@@ -116,7 +118,7 @@ class TCFConverter {
             t = sentenceTokens[-1]
             offset = tokens.get(t.ID)
             if (!offset) {
-                throw new ConversionException("No sucj token ${t.ID} in sentence $i")
+                throw new ConversionException("No such token ${t.ID} in sentence $i")
             }
             annotation.end = offset.end
         }
@@ -147,6 +149,8 @@ class TCFConverter {
         List views = container.findViewsThatContain(Uri.TOKEN)
         View tokenView = views.get(views.size() - 1)
         tokenView.addContains(Uri.POS, producer, "pos:fromTCF")
+        // wait for Serialization library v2.5.0
+//        tokenView.getContains(Uri.POS).addMetadata("posTagSet", posLayer.getTagset())
         for (int i = 0; i < posLayer.size(); i++) {
             PosTag pos = posLayer.getTag(i)
             String posTag = pos.getString()
@@ -177,6 +181,103 @@ class TCFConverter {
             }
             Annotation ne = view.newAnnotation("ne_" + (i+1), Uri.NE, start, end)
             ne.addFeature(Features.NamedEntity.CATEGORY, namedEntity.getType())
+        }
+    }
+
+    void processConstituents(TextCorpus corpus) {
+        ConstituentParsingLayer parseLayer = corpus.getConstituentParsingLayer()
+        if (!parseLayer) return
+
+        View constituentView = (View) container.newView('constituent-view')
+        constituentView.addContains(Uri.PHRASE_STRUCTURE, producer, "phrase_structure:fromTCF")
+        // wait for Serialization library v2.5.0
+//        constituents.getContains(Uri.PHRASE_STRUCTURE).addMetadata("categorySet", parseLayer.getTagset())
+        constituentView.addContains(Uri.CONSTITUENT, producer, "constituent:fromTCF")
+//        constituentView.dependsOn("token-view")
+
+        // for each parse (sentence), create a new annotation of PS
+        for (int sentId = 0; sentId < parseLayer.size(); sentId++) {
+            ConstituentParse parse = parseLayer.getParse(sentId);
+            Constituent root = parse.getRoot()
+            int constId = 0
+            Queue<Filiation> queue = new LinkedList<>();
+
+            // IMPORTANT: we have to generate constituent IDs, since the weblicht
+            // library does not provide a getter for them. However, I process
+            // the tree top-down, giving the first ID the root, and incrementally
+            // to the children, which is not true in most weblicht tools when they
+            // generate TCF file. The example on the weblicht wiki particularly
+            // shows such a tool gives ID in a bottom-up passion, so the root gets
+            // the last ID. Thus, through our conversion, it is almost always the
+            // case that we cannot recover the original IDs from TCF input.
+
+            String curNodeId = "c_${sentId}_${constId++}"
+            queue.add(new Filiation(root, curNodeId, "null"))
+
+            List<String> constituentIds = new LinkedList<>()
+
+            // now use the queue to add each node as a new CONSTITUENT annotation
+            while (!queue.isEmpty()) {
+                Filiation curNode = queue.removeFirst()
+                curNodeId = curNode.nodeId
+                constituentIds.add(curNodeId)
+
+                Annotation constituent = constituentView.newAnnotation()
+                constituent.setId(curNodeId)
+                constituent.label = curNode.node.getCategory()
+                constituent.addFeature(Features.Constituent.PARENT, curNode.parent)
+                List<String> childrenIDs
+                if (curNode.node.isTerminal()) {
+                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect({"token-view:${it.getID()}"})
+                } else {
+                    childrenIDs = new LinkedList<>()
+                    for (Constituent node : curNode.node.getChildren()) {
+                        String childNodeId = "c_${sentId}_${constId++}"
+                        childrenIDs.add(childNodeId)
+                        queue.add(new Filiation(node, childNodeId, curNodeId))
+                    }
+                }
+                constituent.addFeature(Features.Constituent.CHILDREN, childrenIDs.toString())
+            }
+            constituentIds.addAll(parseLayer.getTokens(root).collect({"token-view:${it.getID()}"}))
+
+            // and then add a "phrase structure" annotation for the current sentence
+            Annotation phraseStructure = constituentView.newAnnotation("ps_" + (sentId), Uri.PHRASE_STRUCTURE, )
+            phraseStructure.addFeature(Features.PhraseStructure.CONSTITUENTS, constituentIds.toString())
+            phraseStructure.setLabel()
+        }
+    }
+
+    void processDependencies(TextCorpus corpus) {
+        DependencyParsingLayer parseLayer = corpus.getDependencyParsingLayer()
+        if (!parseLayer) return
+
+        View dependencyView = (View) container.newView('dependency-view')
+        dependencyView.addContains(Uri.DEPENDENCY_STRUCTURE, producer, "dependency_structure:fromTCF")
+        // wait for Serialization library v2.5.0
+//        dependencyView.getContains(Uri.DEPENDENCY_STRUCTURE).addMetadata("dependencySet", parseLayer.getTagset())
+        dependencyView.addContains(Uri.DEPENDENCY, producer, "dependency:fromTCF")
+//        dependencyView.dependsOn("token-view")
+
+        // for each parse (sentence), create a new annotation of PS
+        for (int sentId = 0; sentId < parseLayer.size(); sentId++) {
+            DependencyParse parse = parseLayer.getParse(sentId)
+            int depId = 0
+            List<String> dependencyIds = new LinkedList<>()
+            for (Dependency dep : parse.getDependencies()) {
+                String dependencyId = "dep_${sentId}_${depId++}"
+                Annotation dependency = dependencyView.newAnnotation(dependencyId, Uri.DEPENDENCY)
+                dependency.setLabel(dep.getFunction())
+                for (Token dependent : parseLayer.getDependentTokens(dep)) {
+                    dependency.addFeature(Features.Dependency.DEPENDENT, "token-view:${dependent.getID()}")
+                }
+                for (Token governor : parseLayer.getGovernorTokens(dep)) {
+                    dependency.addFeature(Features.Dependency.GOVERNOR, "token-view:${governor.getID()}")
+                }
+                dependencyIds.add(dependencyId)
+            }
+            dependencyView.newAnnotation("depstr_${sentId}", Uri.DEPENDENCY_STRUCTURE).
+                    addFeature(Features.DependencyStructure.DEPENDENCIES, dependencyIds.toString())
         }
     }
 
