@@ -1,3 +1,21 @@
+/*
+ * Copyright (c) 2017 The Language Applications Grid
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *
+ */
+
 package org.lappsgrid.converter.tcf
 
 import eu.clarin.weblicht.wlfxb.io.WLDObjector
@@ -35,18 +53,18 @@ class TCFConverter {
     }
 
     Data convert(String path) {
-        return convert(new File(path).newInputStream())
+        return convert(new File(path))
     }
 
     Data convert(File file) {
-        return convert(file.newInputStream())
+        return convert(file.newReader())
     }
 
     Data convertString(String tcf) {
-        return convert(new InputStreamReader(new StringReader(tcf)))
+        return convert(new StringReader(tcf))
     }
 
-    Data convert(InputStream stream) {
+    Data convert(Reader stream) {
         WLDObjector objector = new WLDObjector()
         WLData data = objector.read(stream)
 
@@ -67,7 +85,7 @@ class TCFConverter {
         processConstituents(corpus)
         processDependencies(corpus)
 
-        return new DataContainer(container)
+        return new Data(Uri.LIF, container)
     }
 
     void processTokens(TextCorpus corpus) {
@@ -228,6 +246,7 @@ class TCFConverter {
                 constituent.addFeature(Features.Constituent.PARENT, curNode.parent)
                 List<String> childrenIDs
                 if (curNode.node.isTerminal()) {
+                    // FIXME Why a class not found for the closure?
                     childrenIDs = parseLayer.getTokens(curNode.getNode()).collect({"token-view:${it.getID()}"})
                 } else {
                     childrenIDs = new LinkedList<>()

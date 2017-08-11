@@ -25,7 +25,7 @@ class TCFConverterTests {
     void setup() {
         InputStream stream = this.class.classLoader.getResourceAsStream("karen-flew.xml")
         assert stream != null
-        data = new TCFConverter().convert(stream)
+        data = new TCFConverter().convertString(stream.text)
         container = data.payload
     }
 
