@@ -19,6 +19,7 @@
 package org.lappsgrid.converter.tcf
 
 import eu.clarin.weblicht.wlfxb.io.WLDObjector
+import eu.clarin.weblicht.wlfxb.io.WLFormatException
 import eu.clarin.weblicht.wlfxb.tc.api.*
 import eu.clarin.weblicht.wlfxb.tc.xb.LemmasLayerStored
 import eu.clarin.weblicht.wlfxb.tc.xb.PosTagsLayerStored
@@ -66,12 +67,19 @@ class TCFConverter {
 
     Data convert(Reader stream) {
         WLDObjector objector = new WLDObjector()
-        WLData data = objector.read(stream)
-
+        WLData data
+        try {
+            data = objector.read(stream)
+        }
+        catch (WLFormatException ex)
+        {
+            return new Data(Uri.ERROR, "Unable to read Weblicht document from the Reader object.")
+        }
         TextCorpus corpus = data.textCorpus
         TextLayer textLayer = corpus.textLayer
         if (!textLayer) {
-            throw new ConversionException("No text layer in TCF document.")
+            //throw new ConversionException("No text layer in TCF document.")
+            return new Data(Uri.ERROR, "No text layer in TCF document.")
         }
 
         container = new Container()
@@ -89,9 +97,13 @@ class TCFConverter {
     }
 
     void processTokens(TextCorpus corpus) {
+        TokensLayer layer = corpus.getTokensLayer()
+        if (layer == null) {
+            return
+        }
+
         View view = container.newView('token-view')
         view.addContains(Uri.TOKEN, producer, "token:fromTCF")
-        TokensLayer layer = corpus.getTokensLayer()
         String text = container.text
         int n = layer.size()
         int start = 0
