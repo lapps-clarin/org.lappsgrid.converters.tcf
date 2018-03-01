@@ -93,6 +93,7 @@ class TCFConverter {
         processSentences(corpus)
         processLemma(corpus)
         processPos(corpus)
+        processMorphology(corpus)
         processNE(corpus)
         processConstituents(corpus)
         processDependencies(corpus)
@@ -100,7 +101,6 @@ class TCFConverter {
         return new Data(Uri.LIF, container)
     }
 
-    
     void processTokens(TextCorpus corpus) {
         TokensLayer layer = corpus.getTokensLayer()
         if (layer == null) {
@@ -194,6 +194,40 @@ class TCFConverter {
             token.addFeature(Features.Token.PART_OF_SPEECH, posTag)
         }
     }
+
+    void processMorphology(TextCorpus corpus) {
+        MorphologyLayer layer = corpus.getMorphologyLayer()
+        if (layer == null) {
+            return
+        }
+
+        List<View> views = container.findViewsThatContain(Uri.TOKEN)
+        View view = views[-1]
+        view.addContains('http://vocab.lappsgrid.org/Token#morphology', this.class.name, 'morph')
+
+        for (int i = 0; i < layer.size(); ++i) {
+            MorphologyAnalysis analysis = layer.getAnalysis(i)
+            Token[] tokens = layer.getTokens(analysis)
+            Annotation token = view.findById(tokens[-1].ID)
+            Map fs = processFeatures(analysis.features)
+            token.addFeature("morphology", fs)
+        }
+    }
+
+    Map processFeatures(Feature[] features) {
+        Map map = [:]
+        features.each { Feature f ->
+            if (f.terminal) {
+                map[f.name] = f.value
+            }
+            else {
+                map[f.name] = processFeatures(f.subfeatures)
+            }
+
+        }
+        return map
+    }
+
 
     void processNE(TextCorpus corpus) {
         NamedEntitiesLayer layer = corpus.getNamedEntitiesLayer()
