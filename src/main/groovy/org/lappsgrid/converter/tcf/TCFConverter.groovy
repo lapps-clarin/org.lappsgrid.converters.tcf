@@ -26,6 +26,7 @@ import eu.clarin.weblicht.wlfxb.tc.xb.PosTagsLayerStored
 import eu.clarin.weblicht.wlfxb.tc.xb.SentencesLayerStored
 import eu.clarin.weblicht.wlfxb.tc.xb.TokensLayerStored
 import eu.clarin.weblicht.wlfxb.xb.WLData
+import groovy.util.logging.Slf4j
 import org.lappsgrid.discriminator.Discriminators.Uri
 import org.lappsgrid.serialization.Data
 import org.lappsgrid.serialization.DataContainer
@@ -38,6 +39,7 @@ import org.lappsgrid.vocabulary.Features
  * @author Keith Suderman
  * @author Keigh Rim
  */
+@Slf4j('logger')
 class TCFConverter {
 
     Map getterMap = [:]
@@ -62,6 +64,7 @@ class TCFConverter {
     }
 
     Data convertString(String tcf) {
+        logger.debug("Converting String: {}", tcf)
         return convert(new StringReader(tcf))
     }
 
@@ -71,8 +74,9 @@ class TCFConverter {
         try {
             data = objector.read(stream)
         }
-        catch (WLFormatException ex)
+        catch (WLFormatException e)
         {
+            logger.error("Unable to read Weblicht document.", e)
             return new Data(Uri.ERROR, "Unable to read Weblicht document from the Reader object.")
         }
         TextCorpus corpus = data.textCorpus
@@ -96,6 +100,7 @@ class TCFConverter {
         return new Data(Uri.LIF, container)
     }
 
+    
     void processTokens(TextCorpus corpus) {
         TokensLayer layer = corpus.getTokensLayer()
         if (layer == null) {
