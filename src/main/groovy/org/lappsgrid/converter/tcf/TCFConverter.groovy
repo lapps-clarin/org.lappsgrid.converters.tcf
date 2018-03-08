@@ -346,7 +346,7 @@ class TCFConverter {
                 dependencyIds.add(dependencyId)
             }
             dependencyView.newAnnotation("depstr_${sentId}", Uri.DEPENDENCY_STRUCTURE).
-                    addFeature(Features.DependencyStructure.DEPENDENCIES, dependencyIds.toString())
+                    addFeature(Features.DependencyStructure.DEPENDENCIES, dependencyIds)
         }
     }
 
