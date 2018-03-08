@@ -291,8 +291,7 @@ class TCFConverter {
                 curNodeId = curNode.nodeId
                 constituentIds.add(curNodeId)
 
-                Annotation constituent = constituentView.newAnnotation()
-                constituent.setId(curNodeId)
+                Annotation constituent = constituentView.newAnnotation(curNodeId, Uri.CONSTITUENT)
                 constituent.label = curNode.node.getCategory()
                 constituent.addFeature(Features.Constituent.PARENT, curNode.parent)
                 List<String> childrenIDs
@@ -307,7 +306,7 @@ class TCFConverter {
                         queue.add(new Filiation(node, childNodeId, curNodeId))
                     }
                 }
-                constituent.addFeature(Features.Constituent.CHILDREN, childrenIDs.toString())
+                constituent.addFeature(Features.Constituent.CHILDREN, childrenIDs)
             }
             constituentIds.addAll(parseLayer.getTokens(root).collect({"token-view:${it.getID()}"}))
 
