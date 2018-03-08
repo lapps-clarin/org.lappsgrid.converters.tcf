@@ -312,7 +312,7 @@ class TCFConverter {
                     // FIXME Why a class not found for the closure?
 //                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect({"token-view:${it.getID()}"})
                     // FIXME See hack-around above.
-                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect( it.getID() )
+                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect { it.getID() }
                 } else {
                     childrenIDs = new LinkedList<>()
                     for (Constituent node : curNode.node.getChildren()) {
@@ -325,11 +325,11 @@ class TCFConverter {
             }
             // FIXME See above
 //            constituentIds.addAll(parseLayer.getTokens(root).collect({"token-view:${it.getID()}"}))
-            constituentIds.addAll(parseLayer.getTokens(root).collect( it.getID()))
+            constituentIds.addAll(parseLayer.getTokens(root).collect{ it.getID() })
 
             // and then add a "phrase structure" annotation for the current sentence
             Annotation phraseStructure = constituentView.newAnnotation("ps_" + (sentId), Uri.PHRASE_STRUCTURE, )
-            phraseStructure.addFeature(Features.PhraseStructure.CONSTITUENTS, constituentIds.toString())
+            phraseStructure.addFeature(Features.PhraseStructure.CONSTITUENTS, constituentIds)
             phraseStructure.setLabel()
         }
     }

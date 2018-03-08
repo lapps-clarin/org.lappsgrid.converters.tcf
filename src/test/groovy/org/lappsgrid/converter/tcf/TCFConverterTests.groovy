@@ -3,12 +3,14 @@ package org.lappsgrid.converter.tcf
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.lappsgrid.discriminator.Discriminators
 import org.lappsgrid.serialization.Data
 import org.lappsgrid.serialization.lif.Annotation
 import org.lappsgrid.serialization.lif.Container
 import org.lappsgrid.serialization.lif.View
 import org.lappsgrid.vocabulary.Features
+
+import static org.junit.Assert.assertThat
+import static org.lappsgrid.discriminator.Discriminators.*
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
@@ -47,8 +49,11 @@ class TCFConverterTests {
 
     @Test
     void testTokens() {
-        List<View> views = container.findViewsThatContain(Discriminators.Uri.TOKEN)
-        assertTrue 1 == views.size()
+        List<View> views = container.findViewsThatContain(Uri.TOKEN)
+        // FIXME This will change when the Weblich hack-around is removed.
+//        assertTrue 3 == views.size()
+        assertTrue 3 == views.size()
+
         assertTrue 6 == views[0].annotations.size()
 
         List<Annotation> annotations = views[0].annotations
@@ -62,7 +67,7 @@ class TCFConverterTests {
 
     @Test
     void testLemmas() {
-        List<View> views = container.findViewsThatContain(Discriminators.Uri.LEMMA)
+        List<View> views = container.findViewsThatContain(Uri.LEMMA)
         assertTrue 1 == views.size()
         assertTrue 6 == views[0].annotations.size()
 
@@ -77,7 +82,7 @@ class TCFConverterTests {
 
     @Test
     void testSentences() {
-        List<View> views = container.findViewsThatContain(Discriminators.Uri.SENTENCE)
+        List<View> views = container.findViewsThatContain(Uri.SENTENCE)
         assert 1 == views.size()
         assert 1 == views[0].annotations.size()
 
@@ -87,16 +92,19 @@ class TCFConverterTests {
 
     @Test
     void testConstituent() {
-        List<View> views = container.findViewsThatContain(Discriminators.Uri.PHRASE_STRUCTURE)
+        List<View> views = container.findViewsThatContain(Uri.PHRASE_STRUCTURE)
         assert 1 == views.size()
 
-        List<Annotation> annotations = views[0].annotations
+        // FIXME after Weblicht hack-around removed.
+//        List<Annotation> annotations = views[0].annotations
+        List<Annotation> annotations = views[0].annotations.findAll { it.atType != Uri.TOKEN }
+
         assert 13 == annotations.size()
 
         Map<String, String> filiations = new HashMap<>()
         Map<String, String> labels = new HashMap<>()
         for (Annotation annotation : annotations) {
-            if (annotation.getAtType() == Discriminators.Uri.PHRASE_STRUCTURE) {
+            if (annotation.getAtType() == Uri.PHRASE_STRUCTURE) {
                 // 12 non-terminals and 6 terminals
                 assertEquals(18, parseListString(annotation.getFeature(Features.PhraseStructure.CONSTITUENTS)).length)
             } else {
@@ -148,17 +156,18 @@ class TCFConverterTests {
 
     @Test
     void testDependency() {
-        List<View> views = container.findViewsThatContain(Discriminators.Uri.DEPENDENCY_STRUCTURE)
+        List<View> views = container.findViewsThatContain(Uri.DEPENDENCY_STRUCTURE)
         assert 1 == views.size()
 
-        List<Annotation> annotations = views[0].annotations
+        // FIXME after Weblicht supports view ID references
+        List<Annotation> annotations = views[0].annotations.findAll { it.atType != Uri.TOKEN }
         assert 7 == annotations.size()
 
         for (Annotation annotation : annotations) {
-            if (annotation.getAtType() == Discriminators.Uri.DEPENDENCY_STRUCTURE) {
+            if (annotation.getAtType() == Uri.DEPENDENCY_STRUCTURE) {
                 assertEquals(6, parseListString(annotation.getFeature(Features.DependencyStructure.DEPENDENCIES)).length)
             } else {
-                assertEquals(Discriminators.Uri.DEPENDENCY, annotation.getAtType())
+                assertEquals(Uri.DEPENDENCY, annotation.getAtType())
                 switch (annotation.getFeature(Features.Dependency.DEPENDENT).replaceAll("^.+:", "")) {
                     case "t_0":
                         assertEquals("t_1", annotation.getFeature(Features.Dependency.GOVERNOR).replaceAll("^.+:", ""))
