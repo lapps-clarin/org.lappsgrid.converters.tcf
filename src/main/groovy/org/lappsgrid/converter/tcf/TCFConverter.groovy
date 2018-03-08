@@ -29,9 +29,9 @@ import eu.clarin.weblicht.wlfxb.xb.WLData
 import groovy.util.logging.Slf4j
 import org.lappsgrid.discriminator.Discriminators.Uri
 import org.lappsgrid.serialization.Data
-import org.lappsgrid.serialization.DataContainer
 import org.lappsgrid.serialization.lif.Annotation
 import org.lappsgrid.serialization.lif.Container
+import org.lappsgrid.serialization.lif.Contains
 import org.lappsgrid.serialization.lif.View
 import org.lappsgrid.vocabulary.Features
 
@@ -43,7 +43,11 @@ import org.lappsgrid.vocabulary.Features
 class TCFConverter {
 
     Map getterMap = [:]
-    Map<String, Offsets> tokens = new HashMap<String,Offsets>()
+    Map<String, Offsets> offsets
+
+    // FIXME This will not be needed once Weblicht supports view ID references.
+    List<Annotation> tokens
+
     Container container
 
     String producer = this.class.getName()
@@ -53,6 +57,9 @@ class TCFConverter {
         getterMap[SentencesLayerStored] = { layer,n -> layer.getSentence(n) }
         getterMap[LemmasLayerStored] = { layer,n -> layer.getLemma(n) }
         getterMap[PosTagsLayerStored] = { layer,n ->layer.getTag(n) }
+
+        offsets = new HashMap<String,Offsets>()
+        tokens = []
     }
 
     Data convert(String path) {
@@ -125,7 +132,8 @@ class TCFConverter {
             int end = start + token.string.length()
             annotation.start = start
             annotation.end = end
-            tokens[token.ID] = new Offsets(start, end)
+            tokens.add(annotation)
+            offsets[token.ID] = new Offsets(start, end)
         }
     }
 
@@ -145,13 +153,13 @@ class TCFConverter {
             Annotation annotation = view.newAnnotation("s_${i+1}", Uri.SENTENCE)
             annotation.label = "Sentence"
             Token t = sentenceTokens[0]
-            Offsets offset = tokens.get(t.ID)
+            Offsets offset = offsets.get(t.ID)
             if (!offset) {
                 throw new ConversionException("No such token ${t.ID} in sentence $i")
             }
             annotation.start = offset.start
             t = sentenceTokens[-1]
-            offset = tokens.get(t.ID)
+            offset = offsets.get(t.ID)
             if (!offset) {
                 throw new ConversionException("No such token ${t.ID} in sentence $i")
             }
@@ -243,8 +251,8 @@ class TCFConverter {
             int end = Double.NEGATIVE_INFINITY
             toks.each {
                 target.add(it.ID)
-                int curStart = it.start?: tokens[it.ID].start
-                int curEnd = it.end?: tokens[it.ID].end
+                int curStart = it.start?: offsets[it.ID].start
+                int curEnd = it.end?: offsets[it.ID].end
                 start = Math.min(curStart, start)
                 end = Math.max(curEnd, end)
             }
@@ -259,8 +267,13 @@ class TCFConverter {
 
         View constituentView = (View) container.newView('constituent-view')
         constituentView.addContains(Uri.PHRASE_STRUCTURE, producer, "phrase_structure:fromTCF")
+
+        // FIXME Copying tokens to the view is a hack-around until Weblicht supports view ID references.
+        constituentView.addContains(Uri.TOKEN, producer, "token")
+        constituentView.annotations.addAll(tokens)
+
         // wait for Serialization library v2.5.0
-//        constituents.getContains(Uri.PHRASE_STRUCTURE).addMetadata("categorySet", parseLayer.getTagset())
+        constituentView.getContains(Uri.PHRASE_STRUCTURE).put("categorySet", parseLayer.getTagset())
         constituentView.addContains(Uri.CONSTITUENT, producer, "constituent:fromTCF")
 //        constituentView.dependsOn("token-view")
 
@@ -297,7 +310,9 @@ class TCFConverter {
                 List<String> childrenIDs
                 if (curNode.node.isTerminal()) {
                     // FIXME Why a class not found for the closure?
-                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect({"token-view:${it.getID()}"})
+//                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect({"token-view:${it.getID()}"})
+                    // FIXME See hack-around above.
+                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect( it.getID() )
                 } else {
                     childrenIDs = new LinkedList<>()
                     for (Constituent node : curNode.node.getChildren()) {
@@ -308,7 +323,9 @@ class TCFConverter {
                 }
                 constituent.addFeature(Features.Constituent.CHILDREN, childrenIDs)
             }
-            constituentIds.addAll(parseLayer.getTokens(root).collect({"token-view:${it.getID()}"}))
+            // FIXME See above
+//            constituentIds.addAll(parseLayer.getTokens(root).collect({"token-view:${it.getID()}"}))
+            constituentIds.addAll(parseLayer.getTokens(root).collect( it.getID()))
 
             // and then add a "phrase structure" annotation for the current sentence
             Annotation phraseStructure = constituentView.newAnnotation("ps_" + (sentId), Uri.PHRASE_STRUCTURE, )
@@ -323,8 +340,13 @@ class TCFConverter {
 
         View dependencyView = (View) container.newView('dependency-view')
         dependencyView.addContains(Uri.DEPENDENCY_STRUCTURE, producer, "dependency_structure:fromTCF")
+        // FIXME Copying tokens to the view is a hack-around until Weblicht support views IDs.
+        dependencyView.addContains(Uri.TOKEN, producer, "token")
+        dependencyView.annotations.addAll(tokens)
+
         // wait for Serialization library v2.5.0
 //        dependencyView.getContains(Uri.DEPENDENCY_STRUCTURE).addMetadata("dependencySet", parseLayer.getTagset())
+        dependencyView.getContains(Uri.DEPENDENCY_STRUCTURE).put("dependencySet", parseLayer.getTagset())
         dependencyView.addContains(Uri.DEPENDENCY, producer, "dependency:fromTCF")
 //        dependencyView.dependsOn("token-view")
 
@@ -338,10 +360,12 @@ class TCFConverter {
                 Annotation dependency = dependencyView.newAnnotation(dependencyId, Uri.DEPENDENCY)
                 dependency.setLabel(dep.getFunction())
                 for (Token dependent : parseLayer.getDependentTokens(dep)) {
-                    dependency.addFeature(Features.Dependency.DEPENDENT, "token-view:${dependent.getID()}")
+//                    dependency.addFeature(Features.Dependency.DEPENDENT, "token-view:${dependent.getID()}")
+                    dependency.addFeature(Features.Dependency.DEPENDENT, dependent.getID())
                 }
                 for (Token governor : parseLayer.getGovernorTokens(dep)) {
-                    dependency.addFeature(Features.Dependency.GOVERNOR, "token-view:${governor.getID()}")
+//                    dependency.addFeature(Features.Dependency.GOVERNOR, "token-view:${governor.getID()}")
+                    dependency.addFeature(Features.Dependency.GOVERNOR, governor.getID())
                 }
                 dependencyIds.add(dependencyId)
             }
