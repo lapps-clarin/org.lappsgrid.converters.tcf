@@ -1,4 +1,22 @@
-<?xml version="1.0" encoding="UTF-8"?><D-Spin xmlns="http://www.dspin.de/data" version="0.4">
+<?xml version="1.0" encoding="UTF-8"?><!--
+  ~ Copyright (c) 2017 The Language Applications Grid
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~
+  ~
+  -->
+
+<D-Spin xmlns="http://www.dspin.de/data" version="0.4">
     <MetaData xmlns="http://www.dspin.de/data/metadata"><Services><cmd:CMD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cmd="http://www.clarin.eu/cmd/1" CMDVersion="1.2" xsi:schemaLocation="http://www.clarin.eu/cmd/1 http://catalog.clarin.eu/ds/ComponentRegistry/rest/registry/profiles/clarin.eu:cr1:p_1320657629623/xsd"><cmd:Resources><cmd:ResourceProxyList></cmd:ResourceProxyList><cmd:JournalFileProxyList></cmd:JournalFileProxyList><cmd:ResourceRelationList></cmd:ResourceRelationList></cmd:Resources><cmd:Components><cmd:WebServiceToolChain><cmd:GeneralInfo><cmd:Descriptions><cmd:Description></cmd:Description></cmd:Descriptions><cmd:ResourceName>Custom chain</cmd:ResourceName><cmd:ResourceClass>Toolchain</cmd:ResourceClass></cmd:GeneralInfo><cmd:Toolchain><cmd:ToolInChain><cmd:PID>http://hdl.handle.net/11858/00-1778-0000-0004-BA56-7</cmd:PID><cmd:Parameter value="en" name="lang"></cmd:Parameter><cmd:Parameter value="text/plain" name="type"></cmd:Parameter></cmd:ToolInChain><cmd:ToolInChain><cmd:PID>http://hdl.handle.net/11022/0000-0000-2518-C</cmd:PID></cmd:ToolInChain><cmd:ToolInChain><cmd:PID>http://hdl.handle.net/11022/0000-0000-2C14-9</cmd:PID><cmd:Parameter value="en" name="lang"></cmd:Parameter></cmd:ToolInChain><cmd:ToolInChain><cmd:PID>http://hdl.handle.net/11022/0000-0000-83A0-6</cmd:PID></cmd:ToolInChain></cmd:Toolchain></cmd:WebServiceToolChain></cmd:Components></cmd:CMD></Services></MetaData>
     <TextCorpus xmlns="http://www.dspin.de/data/textcorpus" lang="en">
         <tc:text xmlns:tc="http://www.dspin.de/data/textcorpus">Karen flew to New York.</tc:text>
@@ -29,37 +47,5 @@
             <tc:lemma ID="l_4" tokenIDs="t_4">york</tc:lemma>
             <tc:lemma ID="l_5" tokenIDs="t_5">.</tc:lemma>
         </tc:lemmas>
-        <tc:parsing xmlns:tc="http://www.dspin.de/data/textcorpus" tagset="penntb">
-            <tc:parse>
-                <tc:constituent cat="TOP" ID="c_11">
-                    <tc:constituent cat="S" ID="c_10">
-                        <tc:constituent cat="NP" ID="c_1">
-                            <tc:constituent cat="NNP" ID="c_0" tokenIDs="t_0"></tc:constituent>
-                        </tc:constituent>
-                        <tc:constituent cat="VP" ID="c_8">
-                            <tc:constituent cat="VBD" ID="c_2" tokenIDs="t_1"></tc:constituent>
-                            <tc:constituent cat="PP" ID="c_7">
-                                <tc:constituent cat="TO" ID="c_3" tokenIDs="t_2"></tc:constituent>
-                                <tc:constituent cat="NP" ID="c_6">
-                                    <tc:constituent cat="NNP" ID="c_4" tokenIDs="t_3"></tc:constituent>
-                                    <tc:constituent cat="NNP" ID="c_5" tokenIDs="t_4"></tc:constituent>
-                                </tc:constituent>
-                            </tc:constituent>
-                        </tc:constituent>
-                        <tc:constituent cat="." ID="c_9" tokenIDs="t_5"></tc:constituent>
-                    </tc:constituent>
-                </tc:constituent>
-            </tc:parse>
-        </tc:parsing>
-        <tc:depparsing xmlns:tc="http://www.dspin.de/data/textcorpus" tagset="stanford-simple" multigovs="true" emptytoks="false">
-            <tc:parse>
-                <tc:dependency func="nn" govIDs="t_4" depIDs="t_3"></tc:dependency>
-                <tc:dependency func="pobj" govIDs="t_2" depIDs="t_4"></tc:dependency>
-                <tc:dependency func="root" depIDs="t_1"></tc:dependency>
-                <tc:dependency func="punct" govIDs="t_1" depIDs="t_5"></tc:dependency>
-                <tc:dependency func="prep" govIDs="t_1" depIDs="t_2"></tc:dependency>
-                <tc:dependency func="nsubj" govIDs="t_1" depIDs="t_0"></tc:dependency>
-            </tc:parse>
-        </tc:depparsing>
     </TextCorpus>
 </D-Spin>
