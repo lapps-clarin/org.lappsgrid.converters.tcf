@@ -11,7 +11,28 @@
     <groupId>org.lappsgrid.converters</groupId>
     <artifactId>tcf</artifactId>
     <version>1.0.0</version>
-
+    <name>TCF Converter</name>
+    <description>Converts Weblicht TCF to LIF</description>
+    <url>https://github.com/lappsgrid-services/org.lappsgrid.converters.tcf</url>
+    <licenses>
+        <license>
+            <name>The Apache License. Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    <scm>
+        <url>https://github.com/lappsgrid-services/org.lappsgrid.converters.tcf</url>
+        <connection>scm:git:https://github.com/lappsgrid-services/org.lappsgrid.converters.tcf.git</connection>
+        <developerConnection>scm:git:https://github.com/lappsgrid-services/org.lappsgrid.converters.tcf.git</developerConnection>
+    </scm>
+    <issueManagement>
+        <url>https://github.com/lappsgrid-services/org.lappsgrid.converters.tcf/issues</url>
+        <system>GitHub issues</system>
+    </issueManagement>
+    <ciManagement>
+        <url>https://travis-ci.org/lappsgrid-services/org.lappsgrid.converters.tcf</url>
+        <system>travis</system>
+    </ciManagement>
     <dependencies>
         <dependency>
             <groupId>eu.clarin.weblicht</groupId>
