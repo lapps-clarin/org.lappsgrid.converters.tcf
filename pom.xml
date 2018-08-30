@@ -10,7 +10,7 @@
     </parent>
     <groupId>org.lappsgrid.converters</groupId>
     <artifactId>tcf</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 
     <dependencies>
         <dependency>
