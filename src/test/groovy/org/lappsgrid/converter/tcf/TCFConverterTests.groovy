@@ -52,9 +52,9 @@ class TCFConverterTests {
         List<View> views = container.findViewsThatContain(Uri.TOKEN)
         // FIXME This will change when the Weblich hack-around is removed.
 //        assertTrue 3 == views.size()
-        assertTrue 3 == views.size()
+        assert 1 == views.size()
 
-        assertTrue 6 == views[0].annotations.size()
+        assert 6 == views[0].annotations.size()
 
         List<Annotation> annotations = views[0].annotations
         assertEquals 'Karen', extractText(annotations[0])
