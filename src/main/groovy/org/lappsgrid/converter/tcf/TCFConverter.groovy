@@ -134,6 +134,7 @@ class TCFConverter {
             annotation.end = end
             tokens.add(annotation)
             offsets[token.ID] = new Offsets(start, end)
+            start = end;
         }
     }
 
