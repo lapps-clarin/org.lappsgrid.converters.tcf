@@ -47,6 +47,8 @@ class TCFConverter {
     // FIXME This will not be needed once Weblicht supports view ID references.
     List<Annotation> tokens
 
+    String tokenViewId
+
     Container container
 
     String producer = this.class.getName()
@@ -113,7 +115,9 @@ class TCFConverter {
             return
         }
 
-        View view = container.newView('token-view')
+        View view = container.newView()
+        tokenViewId = view.id
+
         view.addContains(Uri.TOKEN, producer, "token:fromTCF")
         String text = container.text
         int n = layer.size()
@@ -142,7 +146,7 @@ class TCFConverter {
         if (!layer) {
             return
         }
-        View view = container.newView('sentence-view')
+        View view = container.newView()
         view.addContains(Uri.SENTENCE, this.class.name, "tcf:sentence")
         for (int i; i < layer.size(); ++i) {
             Sentence s = layer.getSentence(i)
@@ -240,7 +244,7 @@ class TCFConverter {
     void processNE(TextCorpus corpus) {
         NamedEntitiesLayer layer = corpus.getNamedEntitiesLayer()
         if (!layer) return
-        View view = container.newView("ne-view")
+        View view = container.newView()
         view.addContains(Uri.NE, this.class.name, layer.getType())
 
         for (int i; i < layer.size(); ++i) {
@@ -265,10 +269,11 @@ class TCFConverter {
         ConstituentParsingLayer parseLayer = corpus.getConstituentParsingLayer()
         if (!parseLayer) return
 
+
         // needed to get char offsets of sentences
         List<Annotation> sentences = container.findViewsThatContain(Uri.SENTENCE)[-1].getAnnotations();
 
-        View constituentView = (View) container.newView('constituent-view')
+        View constituentView = (View) container.newView()
         constituentView.addContains(Uri.PHRASE_STRUCTURE, producer, "phrase_structure:fromTCF")
 
         // FIXME Copying tokens to the view is a hack-around until Weblicht supports view ID references.
@@ -314,8 +319,7 @@ class TCFConverter {
                 constituent.addFeature(Features.Constituent.PARENT, curNode.parent)
                 List<String> childrenIDs
                 if (curNode.node.isTerminal()) {
-                    // FIXME Why a class not found for the closure?
-                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect({"token-view:${it.getID()}"})
+                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect {"${tokenViewId}:${it.getID()}".toString()}
                     // FIXME See hack-around above.
 //                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect { it.getID() }
                 } else {
@@ -329,7 +333,8 @@ class TCFConverter {
                 constituent.addFeature(Features.Constituent.CHILDREN, childrenIDs)
             }
             // FIXME See above
-//            constituentIds.addAll(parseLayer.getTokens(root).collect({"token-view:${it.getID()}"}))
+            // Fixed
+//            constituentIds.addAll(parseLayer.getTokens(root).collect({"${tokenViewId}:${it.getID()}".toString()}))
 //            constituentIds.addAll(parseLayer.getTokens(root).collect{ it.getID() })
 
             // and then add a "phrase structure" annotation for the current sentence
@@ -347,7 +352,7 @@ class TCFConverter {
         // needed to get char offsets of sentences
         List<Annotation> sentences = container.findViewsThatContain(Uri.SENTENCE)[-1].getAnnotations();
 
-        View dependencyView = (View) container.newView('dependency-view')
+        View dependencyView = (View) container.newView()
         dependencyView.addContains(Uri.DEPENDENCY_STRUCTURE, producer, "dependency_structure:fromTCF")
         // FIXME Copying tokens to the view is a hack-around until Weblicht support views IDs.
         // Weblicht now claims to support view IDs.
@@ -371,11 +376,11 @@ class TCFConverter {
                 Annotation dependency = dependencyView.newAnnotation(dependencyId, Uri.DEPENDENCY)
                 dependency.setLabel(dep.getFunction())
                 for (Token dependent : parseLayer.getDependentTokens(dep)) {
-                    dependency.addFeature(Features.Dependency.DEPENDENT, "token-view:${dependent.getID()}")
+                    dependency.addFeature(Features.Dependency.DEPENDENT, "${tokenViewId}:${dependent.getID()}")
 //                    dependency.addFeature(Features.Dependency.DEPENDENT, dependent.getID())
                 }
                 for (Token governor : parseLayer.getGovernorTokens(dep)) {
-                    dependency.addFeature(Features.Dependency.GOVERNOR, "token-view:${governor.getID()}")
+                    dependency.addFeature(Features.Dependency.GOVERNOR, "${tokenViewId}:${governor.getID()}")
 //                    dependency.addFeature(Features.Dependency.GOVERNOR, governor.getID())
                 }
                 dependencyIds.add(dependencyId)
