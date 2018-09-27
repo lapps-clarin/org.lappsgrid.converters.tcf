@@ -148,6 +148,7 @@ class TCFConverterTests {
         assertEquals("S", labels[filiations[filiations["t_5"]]])
         assertEquals("TOP", labels[filiations[filiations[filiations["t_5"]]]])
 
+        println data.asPrettyJson()
     }
 
     String[] parseListString(String string) {
