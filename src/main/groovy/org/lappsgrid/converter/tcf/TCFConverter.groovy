@@ -31,7 +31,6 @@ import org.lappsgrid.discriminator.Discriminators.Uri
 import org.lappsgrid.serialization.Data
 import org.lappsgrid.serialization.lif.Annotation
 import org.lappsgrid.serialization.lif.Container
-import org.lappsgrid.serialization.lif.Contains
 import org.lappsgrid.serialization.lif.View
 import org.lappsgrid.vocabulary.Features
 
@@ -266,6 +265,9 @@ class TCFConverter {
         ConstituentParsingLayer parseLayer = corpus.getConstituentParsingLayer()
         if (!parseLayer) return
 
+        // needed to get char offsets of sentences
+        List<Annotation> sentences = container.findViewsThatContain(Uri.SENTENCE)[-1].getAnnotations();
+
         View constituentView = (View) container.newView('constituent-view')
         constituentView.addContains(Uri.PHRASE_STRUCTURE, producer, "phrase_structure:fromTCF")
 
@@ -282,6 +284,7 @@ class TCFConverter {
         // for each parse (sentence), create a new annotation of PS
         for (int sentId = 0; sentId < parseLayer.size(); sentId++) {
             ConstituentParse parse = parseLayer.getParse(sentId);
+            Annotation sentence = sentences[sentId];
             Constituent root = parse.getRoot()
             int constId = 0
             Queue<Filiation> queue = new LinkedList<>();
@@ -326,12 +329,12 @@ class TCFConverter {
                 constituent.addFeature(Features.Constituent.CHILDREN, childrenIDs)
             }
             // FIXME See above
-            // Fixed
-            constituentIds.addAll(parseLayer.getTokens(root).collect({"token-view:${it.getID()}"}))
+//            constituentIds.addAll(parseLayer.getTokens(root).collect({"token-view:${it.getID()}"}))
 //            constituentIds.addAll(parseLayer.getTokens(root).collect{ it.getID() })
 
             // and then add a "phrase structure" annotation for the current sentence
-            Annotation phraseStructure = constituentView.newAnnotation("ps_" + (sentId), Uri.PHRASE_STRUCTURE, )
+            Annotation phraseStructure = constituentView.newAnnotation(
+                    "ps_" + (sentId), Uri.PHRASE_STRUCTURE, sentence.getStart(), sentence.getEnd());
             phraseStructure.addFeature(Features.PhraseStructure.CONSTITUENTS, constituentIds)
             phraseStructure.setLabel()
         }
@@ -340,6 +343,9 @@ class TCFConverter {
     void processDependencies(TextCorpus corpus) {
         DependencyParsingLayer parseLayer = corpus.getDependencyParsingLayer()
         if (!parseLayer) return
+
+        // needed to get char offsets of sentences
+        List<Annotation> sentences = container.findViewsThatContain(Uri.SENTENCE)[-1].getAnnotations();
 
         View dependencyView = (View) container.newView('dependency-view')
         dependencyView.addContains(Uri.DEPENDENCY_STRUCTURE, producer, "dependency_structure:fromTCF")
@@ -357,6 +363,7 @@ class TCFConverter {
         // for each parse (sentence), create a new annotation of PS
         for (int sentId = 0; sentId < parseLayer.size(); sentId++) {
             DependencyParse parse = parseLayer.getParse(sentId)
+            Annotation sentence = sentences[sentId];
             int depId = 0
             List<String> dependencyIds = new LinkedList<>()
             for (Dependency dep : parse.getDependencies()) {
@@ -373,7 +380,7 @@ class TCFConverter {
                 }
                 dependencyIds.add(dependencyId)
             }
-            dependencyView.newAnnotation("depstr_${sentId}", Uri.DEPENDENCY_STRUCTURE).
+            dependencyView.newAnnotation("depstr_${sentId}", Uri.DEPENDENCY_STRUCTURE, sentence.getStart(), sentence.getEnd()).
                     addFeature(Features.DependencyStructure.DEPENDENCIES, dependencyIds)
         }
     }

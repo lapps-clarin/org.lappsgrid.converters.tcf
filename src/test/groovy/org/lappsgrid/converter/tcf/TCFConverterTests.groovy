@@ -105,8 +105,8 @@ class TCFConverterTests {
         Map<String, String> labels = new HashMap<>()
         for (Annotation annotation : annotations) {
             if (annotation.getAtType() == Uri.PHRASE_STRUCTURE) {
-                // 12 non-terminals and 6 terminals
-                assertEquals(18, parseListString(annotation.getFeature(Features.PhraseStructure.CONSTITUENTS)).length)
+                // 12 constituents and 6 tokens
+                assertEquals(12, parseListString(annotation.getFeature(Features.PhraseStructure.CONSTITUENTS)).length)
             } else {
                 parseListString(annotation.getFeature(Features.Constituent.CHILDREN)).each { String child ->
                     filiations.put(child.replaceAll("^.+:", ""), annotation.getId())
