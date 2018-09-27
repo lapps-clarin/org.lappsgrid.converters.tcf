@@ -315,8 +315,7 @@ class TCFConverter {
                 constituent.addFeature(Features.Constituent.PARENT, curNode.parent)
                 List<String> childrenIDs
                 if (curNode.node.isTerminal()) {
-                    // FIXME Why a class not found for the closure?
-                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect({"${tokenViewId}:${it.getID()}"})
+                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect {"${tokenViewId}:${it.getID()}".toString()}
                     // FIXME See hack-around above.
 //                    childrenIDs = parseLayer.getTokens(curNode.getNode()).collect { it.getID() }
                 } else {
@@ -331,7 +330,7 @@ class TCFConverter {
             }
             // FIXME See above
             // Fixed
-            constituentIds.addAll(parseLayer.getTokens(root).collect({"${tokenViewId}:${it.getID()}"}))
+//            constituentIds.addAll(parseLayer.getTokens(root).collect({"${tokenViewId}:${it.getID()}".toString()}))
 //            constituentIds.addAll(parseLayer.getTokens(root).collect{ it.getID() })
 
             // and then add a "phrase structure" annotation for the current sentence

@@ -106,7 +106,9 @@ class TCFConverterTests {
         for (Annotation annotation : annotations) {
             if (annotation.getAtType() == Uri.PHRASE_STRUCTURE) {
                 // 12 non-terminals and 6 terminals
-                assertEquals(18, parseListString(annotation.getFeature(Features.PhraseStructure.CONSTITUENTS)).length)
+//                int expected = 18
+                int expected = 12
+                assertEquals(expected, parseListString(annotation.getFeature(Features.PhraseStructure.CONSTITUENTS)).length)
             } else {
                 parseListString(annotation.getFeature(Features.Constituent.CHILDREN)).each { String child ->
                     filiations.put(child.replaceAll("^.+:", ""), annotation.getId())
