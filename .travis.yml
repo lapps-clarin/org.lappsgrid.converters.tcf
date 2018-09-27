@@ -6,10 +6,12 @@ branches:
     only:
         - develop
         - master
+before_install:
+    - curl -O http://downloads.lappsgrid.org/scripts/settings.xml
 install:
-    - mvn anc:version
-    - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+    - mvn anc:version --settings settings.xml
+    - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V --settings settings.xml
 script:
-    - mvn clean
-    - mvn compile
-    - mvn test
+    - mvn clean --settings settings.xml
+    - mvn compile --settings settings.xml
+    - mvn test --settings settings.xml
